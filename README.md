@@ -102,11 +102,8 @@ Both input satellite radiances and output OPERA ground-radar rain rates are give
 ![Context](/images/opera_satelite_context_explained.png?raw=true "Weather4cast competition")
 
 ## Submission guide
-**The leaderboads are not available yet. They will be open for submissions in the middle of October**
 
-**THE CURRENT VERSION OF THE BASELINE IS MAKING PREDICIONS 8 HOURS INTO THE FUTURE AND THIS MIGHT CHANGE TO 4 HOURS IN THE LEADERBOARD**
-
-For submissions you need to upload a ZIP format archive of HDF-5 files that follows the folder structure below. Optionally, each HDF-5 file can be compressed by gzip, allowing for simple parallelization of the compression step. You need to include model predictions for all the regions. For each region, an HDF file should provide *submission*, a tensor of type `float32` and shape `(60, 1, 32, 252, 252)` (THIS MAY CHANGE DEPENDING ON PREDICTION TIME), representing your predictions for the 60 test samples of a region. You need to follow the file naming convention shown in the example below to indicate the target region. Predictions for different years need to be placed in separate folders as shown below. The folder structure must be preserved in the submitted ZIP file. Please note that for Stage 1 we only ask for predictions for the year 2019, and predictions are simply 1 or 0 to indicate *rain* or *no rain* events respectively. For the Core Challenge, we ask for predictions for a total of 7 regions in both 2019 and 2020. For the Transfer Learning Challenge predictions for 3 regions are required in years 2019 and 2020, and for all 10 regions in 2021. To simplify compilation of predictions, we will provide helper scripts in the Starter Kit.
+For submissions you need to upload a ZIP format archive of HDF-5 files that follows the folder structure below. Optionally, each HDF-5 file can be compressed by gzip, allowing for simple parallelization of the compression step. You need to include model predictions for all the regions. For each region, an HDF file should provide *submission*, a tensor of type `float32` and shape for the 8-hour Core and Transfer learning leaderobards `(60, 1, 32, 252, 252)` and `(60, 1, 16, 252, 252)` for the 4-hour Nowcasting leaderobard, representing your predictions for the 60 test samples of a region. You need to follow the file naming convention shown in the example below to indicate the target region. Predictions for different years need to be placed in separate folders as shown below. The folder structure must be preserved in the submitted ZIP file. Please note that for Stage 1 we only ask for predictions for the year 2019, and predictions are simply 1 or 0 to indicate *rain* or *no rain* events respectively. For the Core Challenge, we ask for predictions for a total of 7 regions in both 2019 and 2020. For the Transfer Learning Challenge predictions for 3 regions are required in years 2019 and 2020, and for all 10 regions in 2021. To simplify compilation of predictions, we will provide helper scripts in the Starter Kit.
 
 ```
 +-- 2019 –
@@ -118,8 +115,6 @@ For submissions you need to upload a ZIP format archive of HDF-5 files that foll
 ```
 
 ## Starter kit
-**THE CURRENT VERSION OF THE BASELINE IS MAKING PREDICIONS 8 HOURS INTO THE FUTURE AND THIS MIGHT CHANGE TO 4 HOURS IN THE LEADERBOARD**
-
 This repository provides a starter kit accompanying the Weather4cast 2023 competition that includes example code to get you up to speed quickly. Please note that its use is entirely optional. The sample code includes a dataloader, some helper scripts, and a Unet-3D baseline model, some parameters of which can be set in a configuration file.
 
 To obtain the baseline model, you will need the `wget` command installed - then you can run
@@ -204,6 +199,13 @@ Training will create logs and checkpoint files that are saved in the `lightning_
 python train.py --gpus 0 1 --mode val  --config_path config_baseline.yaml  --checkpoint "lightning_logs/PATH-TO-YOUR-MODEL-LOGS/checkpoints/YOUR-CHECKPOINT-FILENAME.ckpt" --name baseline_validate
 ```
 
+### 8-hours vs 4-hours predicions 
+You can use the Starting Kit to train your network for both 4-hours and 8-hours prediction tasks:
+
+- **8-hours Core and Transfer Learning Leaderboards**: to train your model for 8-hours leaderboards you need to set up `len_seq_predict` to `32` in the `config_baseline.yaml` file.
+-  **4-hours Nowcasting Leaderboard**: to train your model for the 4-hours leaderboard you need to set up `len_seq_predict` to `16` in the `config_baseline.yaml` file.
+
+
 ### TensorBoard
 You can of course also use [TensorBoard](https://www.tensorflow.org/tensorboard) to track and visualize model evaluation metrics during the training process.
 The standard TensorBoard command line is:
@@ -213,9 +215,6 @@ tensorboard --logdir ./lightning_logs
 This should confirm that TensorBoard has started. For the default port, you point your browser to http://localhost:6006.
 
 ### Generating a submission
-**Plase note that leaderboads are not available yet. They will be open for submissions in the middle of October**
-
-<!-- 
 Submission files can be generated from a trained model based on the model paramters saved in the checkpoint file. To generate predictions from your model checkpoint you can run the `train.py` script as below:
 ```
 train.py --gpus 0 --mode predict --config_path config_baseline.yaml --checkpoint "lightning_logs/PATH-TO-YOUR-MODEL-LOGS/checkpoints/YOUR-CHECKPOINT-FILENAME.ckpt"
@@ -232,16 +231,16 @@ To generate predictions for multiple regions this needs to be run with a separat
 
 After generating prediction files for all the regions, please pack them into a single ZIP file (keeping the `year/` folder structure) and submit them to the respective Weather4cast leaderboards when they are available.
 
+Please remember to set up the `len_seq_predict` paramter to either `16` or `32``, depenging on the task for which you are generating the submssion. 
 
 ### Automated generation of submissions (helper scripts)
 Considering the much increased number of individual predictions to collect for a leaderboard submissions, we will provide helper scripts `mk_pred_core.sh` and `./mk_pred_transfer.sh` that can be used to generate and compile all individual predictions from a single model. The scripts display help text and diagnostics. Note that the use of these scripts is entirely optional because you may prefer to apply different models for different regions. You can provide both an output directory and a GPU ID to generate multiple predictions in parallel. The script will typically run for 20-40 minutes on a recent GPU system.
 
 Example invocation for interactive use:
 ```
-./mk_pred_core.sh config_baseline_stage2-pred.yaml 'lightning_logs/yourModelName/checkpoints/yourCheckPointName.ckpt' yourSubmissionName 0 2>&1 | tee yourSubmission.core.log
+./mk_pred_core.sh config_baseline_w4c23-pred.yaml 'lightning_logs/yourModelName/checkpoints/yourCheckPointName.ckpt' yourSubmissionName 0 2>&1 | tee yourSubmission.core.log
 ```
 
--->
 
 ## Code and Scientific Abstract
 At the end of the competition paricpants are required to provide:
