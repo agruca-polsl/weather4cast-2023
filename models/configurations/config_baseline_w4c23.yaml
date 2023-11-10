@@ -18,8 +18,8 @@ dataset:
   full_opera_context: 1512 # (105+42+105)*6; 
   size_target_center:  252 # 42*6;  
   len_seq_in: 4        # number of input slots per training sequence
-  len_seq_predict: 32  # output slots; both still hard-coded in places!
-  data_root:  'data'
+  len_seq_predict: 32  # output slots; set to 16 for 4-hours prediction or 32 for 8-hours prediction
+  data_root:  'data-ala'  
   years:  [ '2019', '2020' ]  
   splits_path: 'data/timestamps_and_splits_stage2.csv'  
   
@@ -29,8 +29,9 @@ dataset:
     RATE:
       rainfall_rate-500X500: 
         mask: [-9999000.0, inf, nan, max128] #, 0range0.1] # Mostly used for loss function: values added here are added to a mask and not used for loss 
-#         map: [[lessthan0.0, 0], [greaterthan0.0, 1], [-8888000.0, 0], [-9999000.0, 0], [inf, 0], [nan, 0]]   #Mostly used for input preprocessing   # 1. map values   # stage-1
-        map: [[-8888000.0, 0], [-9999000.0, 0], [inf, 0], [nan, 0]]   #Mostly used for input preprocessing   # 1. map values   # stage-2
+        map: [[lessthan0.2, 0], [-8888000.0, 0], [-9999000.0, 0], [inf, 0], [nan, 0]]   #Mostly used for input preprocessing   # 1. map values   # stage-1
+#        map: [[lessthan0.0, 0], [greaterthan0.0, 1], [-8888000.0, 0], [-9999000.0, 0], [inf, 0], [nan, 0]]   #Mostly used for input preprocessing   # 1. map values   # stage-1
+#        map: [[-8888000.0, 0], [-9999000.0, 0], [inf, 0], [nan, 0]]   #Mostly used for input preprocessing   # 1. map values   # stage-2
 #        mean_std: [0.07165331, 0.6302647]
         range: [0, 128]          # 2. we evaluate only pixels in this range
         standardise: False       # 3. use log(x+1) instead & normalize (x/max)
@@ -105,9 +106,9 @@ dataset:
       standardise: True
     
 train:    # model training settings
-  batch_size: 16  # 40
+  batch_size: 32  # 40# 16
   max_epochs: 90
-  n_workers: 8  # 16
+  n_workers: 16  # 8
   loss: mse 
   pos_weight: 6.114572
   early_stopping: True
