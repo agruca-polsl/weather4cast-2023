@@ -56,7 +56,9 @@ class UNet_Lightning(pl.LightningModule):
         self.in_channels = params['in_channels']
         self.start_filts = params['init_filter_size']
         self.dropout_rate = params['dropout_rate']
-        self.model = Base_UNET3D(in_channels=self.in_channels, start_filts =  self.start_filts, dropout_rate = self.dropout_rate)
+        self.out_channels = params['len_seq_predict']
+        self.model = Base_UNET3D(in_channels=self.in_channels, start_filts =  self.start_filts, 
+                                 dropout_rate = self.dropout_rate, out_channels = self.out_channels)
 
         self.save_hyperparameters()
         self.params = params
