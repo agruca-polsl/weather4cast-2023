@@ -42,6 +42,13 @@ import torch.nn.functional as F
 from utils.evaluate import *
 import numpy as np;
 
+#imports for plotting
+import os
+import datetime
+import matplotlib.pyplot as plt
+from utils.viz import plot_sequence, save_pdf
+
+
 #models
 from models.baseline_UNET3D import UNet as Base_UNET3D # 3_3_2 model selection
 
@@ -53,6 +60,8 @@ class UNet_Lightning(pl.LightningModule):
                  **kwargs):
         super(UNet_Lightning, self).__init__()
 
+        self.plot_results = params['plot_results']
+        self.in_channel_to_plot = params['in_channel_to_plot']
         self.in_channels = params['in_channels']
         self.start_filts = params['init_filter_size']
         self.dropout_rate = params['dropout_rate']
@@ -163,7 +172,7 @@ class UNet_Lightning(pl.LightningModule):
         self.log(f'{phase}_loss', loss, batch_size=self.bs, sync_dist=True)
         values  = {'val_mse': loss} 
         self.log_dict(values, batch_size=self.bs, sync_dist=True)
-    
+
         return {'loss': loss.cpu(), 'N': x.shape[0],
                 'mse': loss.cpu()}
         
@@ -199,7 +208,11 @@ class UNet_Lightning(pl.LightningModule):
         self.log(f'{phase}_loss', loss, batch_size=self.bs, sync_dist=True)
         values = {'test_mse': loss}
         self.log_dict(values, batch_size=self.bs, sync_dist=True)
-        
+
+        if(self.plot_results):
+            title = f'batch {self.val_batch} | mse: {loss.cpu():.3f}'
+            self.plot_batch(x, y, y_hat, metadata, title , phase, vmax=1.)
+
         return 0, y_hat
 
     def predict_step(self, batch, batch_idx, phase='predict'):
@@ -209,6 +222,9 @@ class UNet_Lightning(pl.LightningModule):
         if VERBOSE:
             print('y_hat', y_hat.shape, 'y', y.shape, '----------------- model')
 
+        if(self.plot_results):
+            self.plot_batch(x, y, y_hat, metadata, f'batch: {self.val_batch} | prediction results', phase, vmax=1.)
+        
         return y_hat
 
     def configure_optimizers(self):
@@ -217,6 +233,55 @@ class UNet_Lightning(pl.LightningModule):
                                      lr=float(self.params["lr"]),weight_decay=float(self.params["weight_decay"])) 
         return optimizer
 
+    def plot_batch(self, xs, ys, y_hats, metadata, loss, phase, vmax=0.01, vmin=0):
+        figures = []
+
+        # pytorch to numpy
+        xs, y_hats = [o.cpu() for o in [xs, y_hats]]
+        xs, y_hats = [np.asarray(o) for o in [xs, y_hats]]
+
+        if(phase == "test"):
+            ys = ys.cpu()
+            ys = np.asarray(ys) 
+        else:
+            ys = y_hats     # it's going to be empty - just to make life easier while passing values to other functions
+
+        print(f"\nplot batch of size {len(xs)}")
+        for i in range(len(xs)):
+            print(f"plot, {i+1}/{len(xs)}")
+            texts_in = [t[i] for t in metadata['input']['timestamps']]
+            texts_ta = [t[i] for t in metadata['target']['timestamps']]
+            #title = self.seq_metrics(ys[i].ravel(), y_hats[i].ravel())            
+            if VERBOSE:
+                print("inputs")
+                print(np.shape(xs[i]))
+                if(phase == "test"):
+                    print("target")
+                    print(np.shape(ys[i]))
+                print("prediction")
+                print(np.shape(y_hats[i]))
+            self.collapse_time = True   
+
+            fig = plot_sequence(xs[i], ys[i], y_hats[i], texts_in, texts_ta, 
+                                self.params, phase, self.collapse_time, vmax=vmax, vmin=vmin, 
+                                channel=self.in_channel_to_plot, title=loss)
+            figures.append(fig)
+            # save individual image to tensorboard
+            self.logger.experiment.add_figure(f"preds_{self.trainer.global_step}_{self.val_batch}_{i}", fig)
+        # save all figures to disk
+        date_time = datetime.datetime.now().strftime("%m%d-%H:%M")
+        fname = f"batch_{self.val_batch}_{date_time}"
+        dir_path = os.path.join('plots',f"{self.params['name']}")
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        f_path = os.path.join(dir_path,fname)
+        save_pdf(figures, f_path)
+        if(phase == "test"):
+            print(f'saved figures at: {fname} | {loss}')
+        else:
+            print(f'saved figures at: {fname}')
+        self.val_batch += 1
+        return figures
 
 def main():
     print("running")

@@ -18,6 +18,7 @@
     - [TensorBoard](#tensorboard)
     - [Generating a submission](#generating-a-submission)
     - [Automated generation of submissions](#automated-generation-of-submissions-helper-scripts)
+    - [Plotting the results](#plotting-the-results)
   - [Code and Scientific Abstract](#code-and-scientific-abstract)
   - [Cite](#citation)
   - [Credits](#credits)
@@ -231,7 +232,7 @@ To generate predictions for multiple regions this needs to be run with a separat
 
 After generating prediction files for all the regions, please pack them into a single ZIP file (keeping the `year/` folder structure) and submit them to the respective Weather4cast leaderboards when they are available.
 
-Please remember to set up the `len_seq_predict` paramter to either `16` or `32``, depenging on the task for which you are generating the submssion. 
+Please remember to set up the `len_seq_predict` paramter to either `16` or `32`, depenging on the task for which you are generating the submssion. 
 
 ### Automated generation of submissions (helper scripts)
 Considering the much increased number of individual predictions to collect for a leaderboard submissions, we will provide helper scripts `mk_pred_core.sh` and `./mk_pred_transfer.sh` that can be used to generate and compile all individual predictions from a single model. The scripts display help text and diagnostics. Note that the use of these scripts is entirely optional because you may prefer to apply different models for different regions. You can provide both an output directory and a GPU ID to generate multiple predictions in parallel. The script will typically run for 20-40 minutes on a recent GPU system.
@@ -241,6 +242,17 @@ Example invocation for interactive use:
 ./mk_pred_core.sh config_baseline_w4c23-pred.yaml 'lightning_logs/yourModelName/checkpoints/yourCheckPointName.ckpt' yourSubmissionName 0 2>&1 | tee yourSubmission.core.log
 ```
 
+## Plotting the results
+
+To analyze the quality of your predictions, you can plot the output images generated in `validation` or `prediction mode`. They will be saved in the `plots` directory as PDF files. Each PDF file is generated separately for a single batch analysis.
+
+To plot the results, you need to set up the `plot_results` parameter in the `experiment` section of the `config_baseline.yaml` file. Plots are generated for analyzed batches, and of them starts with the input satellite sequence. By changing the value of `in_channel_to_plot`, you can define which of the 11 input satellite channels you want to be plotted. In `validation` mode, the plots will include both target and prediction sequences, while in `prediction` mode, the plots will include only predictions.
+
+As plotting is slow, by default, the `plot_results` parameter is set to `False``.
+
+The image below presetns exemplary plot results generated in `validation` mode. First row representes input sequecne, second row represents target (ground truth) seqnece and the third row represens prediction. 
+
+![`Results_plot_example`](/images/results_plot_example.png?raw=true "Example of reuslts plot")
 
 ## Code and Scientific Abstract
 At the end of the competition paricpants are required to provide:
